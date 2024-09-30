@@ -73,7 +73,7 @@ public class Register extends HttpServlet {
         } else if (mobile.isEmpty()) {
             responseObject.addProperty("msg", "Please enter your mobile number!");
         } else if (!Validate.isValidMobile(mobile)) {
-            responseObject.addProperty("msg", "Please enter valid mobile number! \\n 07********");
+            responseObject.addProperty("msg", "Please enter valid mobile number! \\n07********");
         } else if (username.isEmpty()) {
             responseObject.addProperty("msg", "Please enter your username!");
         } else if (username.length() < 3 || username.length() > 20) {
