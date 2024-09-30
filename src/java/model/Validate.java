@@ -25,4 +25,8 @@ public class Validate {
     public static boolean isValidPassword(String text) {
         return text.matches("^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{8,}$");
     }
+    
+    public static boolean isInteger(String text) {
+        return text.matches("^\\d+$");
+    }
 }
