@@ -35,13 +35,13 @@ import org.hibernate.criterion.Restrictions;
 @MultipartConfig
 @WebServlet(name = "Register", urlPatterns = {"/Register"})
 public class Register extends HttpServlet {
-    
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         Gson gson = new Gson();
         JsonObject responseObject = new JsonObject();
         responseObject.addProperty("ok", false);
-        
+
         String f_name = req.getParameter("f_name");
         String l_name = req.getParameter("l_name");
         String password = req.getParameter("password");
@@ -49,7 +49,7 @@ public class Register extends HttpServlet {
         String username = req.getParameter("username");
         String email = req.getParameter("email");
         Part image = req.getPart("image");
-        
+
         if (f_name.isEmpty()) {
             responseObject.addProperty("msg", "Please enter your first name!");
         } else if (Validate.hasDigit(f_name)) {
@@ -86,22 +86,22 @@ public class Register extends HttpServlet {
             responseObject.addProperty("msg", "Your email has exceeded the maximum character limit!");
         } else {
             Session session = HibernateUtil.getSessionFactory().openSession();
-            
+
             try {
                 Criteria checkMobileCriteria = session.createCriteria(User.class);
                 checkMobileCriteria.add(Restrictions.eq("mobile", mobile));
-                
+
                 if (checkMobileCriteria.list().isEmpty()) {
                     Criteria checkUserNameCriteria = session.createCriteria(User.class);
                     checkUserNameCriteria.add(Restrictions.eq("username", username));
-                    
+
                     if (checkUserNameCriteria.list().isEmpty()) {
                         Criteria checkEmailCriteria = session.createCriteria(User.class);
                         checkEmailCriteria.add(Restrictions.eq("email", email));
-                        
+
                         if (checkEmailCriteria.list().isEmpty()) {
                             int otp = (int) (Math.random() * 1000000);
-                            
+
                             User user = new User();
                             user.setF_name(f_name);
                             user.setL_name(l_name);
@@ -112,7 +112,7 @@ public class Register extends HttpServlet {
                             user.setRegistered_date(new Date());
                             user.setVerification(String.valueOf(otp));
                             user.setStatus(1);
-                            
+
                             Thread mailSender = new Thread() {
                                 @Override
                                 public void run() {
@@ -120,7 +120,7 @@ public class Register extends HttpServlet {
                                             + "  <style>\n"
                                             + "    body {\n"
                                             + "      font-family: Arial, sans-serif;\n"
-                                            + "      background-color: #0c4eac;\n"
+                                            + "      background-color: #e7e7e7;\n"
                                             + "      margin: 0;\n"
                                             + "      padding: 0;\n"
                                             + "      -webkit-font-smoothing: antialiased;\n"
@@ -137,14 +137,14 @@ public class Register extends HttpServlet {
                                             + "    .email-header {\n"
                                             + "      text-align: center;\n"
                                             + "      padding: 20px 0;\n"
-                                            + "      background-color: #ff3333;\n"
+                                            + "      background-color: #0c4eac;\n"
                                             + "      color: white;\n"
                                             + "      border-radius: 8px 8px 0 0;\n"
                                             + "    }\n"
                                             + "    .email-body {\n"
                                             + "      padding: 20px;\n"
-                                            + "      border-left: 2px solid #ff3333;\n"
-                                            + "      border-right: 2px solid #ff3333;\n"
+                                            + "      border-left: 2px solid #0c4eac;\n"
+                                            + "      border-right: 2px solid #0c4eac;\n"
                                             + "      text-align: center;\n"
                                             + "    }\n"
                                             + "    .email-body p {\n"
@@ -156,7 +156,7 @@ public class Register extends HttpServlet {
                                             + "    .verification-code {\n"
                                             + "      display: inline-block;\n"
                                             + "      font-size: 24px;\n"
-                                            + "      color: #ff3333;\n"
+                                            + "      color: #0c4eac;\n"
                                             + "      background-color: #f4f4f4;\n"
                                             + "      padding: 10px 20px;\n"
                                             + "      border-radius: 5px;\n"
@@ -169,9 +169,9 @@ public class Register extends HttpServlet {
                                             + "      color: #777777;\n"
                                             + "      padding: 20px 0;\n"
                                             + "      border-top: 1px solid #eeeeee;\n"
-                                            + "      border-left: 2px solid #ff3333;\n"
-                                            + "      border-right: 2px solid #ff3333;\n"
-                                            + "      border-bottom: 2px solid #ff3333;\n"
+                                            + "      border-left: 2px solid #0c4eac;\n"
+                                            + "      border-right: 2px solid #0c4eac;\n"
+                                            + "      border-bottom: 2px solid #0c4eac;\n"
                                             + "      border-bottom-left-radius: 10px;\n"
                                             + "      border-bottom-right-radius: 10px;\n"
                                             + "    }\n"
@@ -206,19 +206,19 @@ public class Register extends HttpServlet {
                                 }
                             };
                             mailSender.start();
-                            
+
                             int userId = (int) session.save(user);
                             session.beginTransaction().commit();
-                            
+
                             String applicationPath = req.getServletContext().getRealPath("");
                             String newApplicationPath = applicationPath.replace("build" + File.separator + "web", "web");
                             File folder = new File(newApplicationPath + "//images//user//" + userId);
                             folder.mkdir();
-                            
+
                             File imageFile = new File(folder, userId + "avatar.png");
                             InputStream inputStreamImage = image.getInputStream();
                             Files.copy(inputStreamImage, imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                            
+
                             responseObject.addProperty("ok", true);
                             responseObject.addProperty("user", userId);
                         } else {
@@ -236,10 +236,10 @@ public class Register extends HttpServlet {
             }
             session.close();
         }
-        
+
         resp.setContentType("application/json");
         resp.getWriter().write(gson.toJson(responseObject));
-        
+
     }
-    
+
 }
