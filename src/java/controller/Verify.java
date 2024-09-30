@@ -58,8 +58,18 @@ public class Verify extends HttpServlet {
                     session.update(user);
                     session.beginTransaction().commit();
 
+                    JsonObject userObject = new JsonObject();
+                    userObject.addProperty("id", user.getId());
+                    userObject.addProperty("f_name", user.getF_name());
+                    userObject.addProperty("l_name", user.getL_name());
+                    userObject.addProperty("username", user.getUsername());
+                    userObject.addProperty("mobile", user.getMobile());
+                    userObject.addProperty("email", user.getEmail());
+                    userObject.addProperty("password", user.getPassword());
+                    userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
+
                     responseObject.addProperty("ok", true);
-                    responseObject.add("user", gson.toJsonTree(user));
+                    responseObject.add("user", userObject);
                 } else {
                     responseObject.addProperty("msg", "OTP mismatched!");
                 }
