@@ -53,6 +53,9 @@ public class User implements Serializable {
     @Column(name = "status", nullable = false)
     private int status;
 
+    @Column(name = "bio", length = 200, nullable = false)
+    private String bio;
+
     public User() {
     }
 
@@ -134,6 +137,14 @@ public class User implements Serializable {
 
     public void setMobile(String mobile) {
         this.mobile = mobile;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
 }
