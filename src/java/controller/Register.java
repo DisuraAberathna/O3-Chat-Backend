@@ -112,6 +112,7 @@ public class Register extends HttpServlet {
                             user.setRegistered_date(new Date());
                             user.setVerification(String.valueOf(otp));
                             user.setStatus(1);
+                            user.setBio("Hey there! I am using O3 Chat.");
 
                             Thread mailSender = new Thread() {
                                 @Override
