@@ -21,6 +21,7 @@ import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
 
 /**
  *
@@ -37,6 +38,7 @@ public class LoadUsers extends HttpServlet {
 
         JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
         String id = reqObject.get("id").getAsString();
+        String searchText = reqObject.get("searchText").getAsString();
 
         if (id.isEmpty()) {
             responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
@@ -47,11 +49,21 @@ public class LoadUsers extends HttpServlet {
 
             try {
                 Criteria userCriteria = session.createCriteria(User.class);
+                if (!searchText.isEmpty()) {
+                    userCriteria.add(Restrictions.like("f_name", searchText + "%"));
+                }
                 userCriteria.addOrder(Order.asc("f_name"));
                 List<User> userList = userCriteria.list();
 
-                JsonArray userArray = new JsonArray();
+                JsonObject groupedUsers = new JsonObject();
+
                 for (User user : userList) {
+                    String firstLetter = user.getF_name().substring(0, 1).toUpperCase();
+
+                    if (!groupedUsers.has(firstLetter)) {
+                        groupedUsers.add(firstLetter, new JsonArray());
+                    }
+
                     JsonObject userObject = new JsonObject();
                     userObject.addProperty("id", user.getId());
                     if (user.getId() == Integer.parseInt(id)) {
@@ -63,9 +75,9 @@ public class LoadUsers extends HttpServlet {
                     }
                     userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
 
-                    userArray.add(userObject);
+                    groupedUsers.getAsJsonArray(firstLetter).add(userObject);
                 }
-                responseObject.add("users", userArray);
+                responseObject.add("groupedUsers", groupedUsers);
                 responseObject.addProperty("ok", true);
             } catch (HibernateException e) {
                 System.out.println(e.getMessage());
