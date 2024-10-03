@@ -64,8 +64,8 @@ public class SignIn extends HttpServlet {
                             userObject.addProperty("username", user.getUsername());
                             userObject.addProperty("mobile", user.getMobile());
                             userObject.addProperty("email", user.getEmail());
-                            userObject.addProperty("password", user.getPassword());
                             userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
+                            userObject.addProperty("bio", user.getBio());
 
                             responseObject.add("user", userObject);
                         }
