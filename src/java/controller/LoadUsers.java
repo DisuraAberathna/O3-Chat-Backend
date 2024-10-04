@@ -58,21 +58,23 @@ public class LoadUsers extends HttpServlet {
 
                 JsonObject groupedUsers = new JsonObject();
 
-                if (!groupedUsers.has("")) {
-                    groupedUsers.add("", new JsonArray());
+                if (!userList.isEmpty() && searchText.isEmpty()) {
+                    if (!groupedUsers.has("")) {
+                        groupedUsers.add("", new JsonArray());
+                    }
+
+                    Criteria loggedInUserCriteria = session.createCriteria(User.class);
+                    loggedInUserCriteria.add(Restrictions.eq("id", Integer.valueOf(id)));
+                    User loggInUser = (User) loggedInUserCriteria.uniqueResult();
+
+                    JsonObject loggedInUserObject = new JsonObject();
+                    loggedInUserObject.addProperty("id", loggInUser.getId());
+                    loggedInUserObject.addProperty("name", loggInUser.getF_name() + " (You)");
+                    loggedInUserObject.addProperty("bio", "Message your self");
+                    loggedInUserObject.addProperty("profile_img", "images//user//" + loggInUser.getId() + "//" + loggInUser.getId() + "avatar.png");
+
+                    groupedUsers.getAsJsonArray("").add(loggedInUserObject);
                 }
-
-                Criteria loggedInUserCriteria = session.createCriteria(User.class);
-                loggedInUserCriteria.add(Restrictions.eq("id", Integer.valueOf(id)));
-                User loggInUser = (User) loggedInUserCriteria.uniqueResult();
-
-                JsonObject loggedInUserObject = new JsonObject();
-                loggedInUserObject.addProperty("id", loggInUser.getId());
-                loggedInUserObject.addProperty("name", loggInUser.getF_name() + " (You)");
-                loggedInUserObject.addProperty("bio", "Message your self");
-                loggedInUserObject.addProperty("profile_img", "images//user//" + loggInUser.getId() + "//" + loggInUser.getId() + "avatar.png");
-
-                groupedUsers.getAsJsonArray("").add(loggedInUserObject);
 
                 for (User user : userList) {
                     String firstLetter = user.getF_name().substring(0, 1).toUpperCase();
