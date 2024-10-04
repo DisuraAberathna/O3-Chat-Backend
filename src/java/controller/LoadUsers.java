@@ -49,6 +49,7 @@ public class LoadUsers extends HttpServlet {
 
             try {
                 Criteria userCriteria = session.createCriteria(User.class);
+                userCriteria.add(Restrictions.ne("id", Integer.valueOf(id)));
                 if (!searchText.isEmpty()) {
                     userCriteria.add(Restrictions.like("f_name", searchText + "%"));
                 }
@@ -56,6 +57,24 @@ public class LoadUsers extends HttpServlet {
                 List<User> userList = userCriteria.list();
 
                 JsonObject groupedUsers = new JsonObject();
+
+                if (!userList.isEmpty() && searchText.isEmpty()) {
+                    if (!groupedUsers.has("")) {
+                        groupedUsers.add("", new JsonArray());
+                    }
+
+                    Criteria loggedInUserCriteria = session.createCriteria(User.class);
+                    loggedInUserCriteria.add(Restrictions.eq("id", Integer.valueOf(id)));
+                    User loggInUser = (User) loggedInUserCriteria.uniqueResult();
+
+                    JsonObject loggedInUserObject = new JsonObject();
+                    loggedInUserObject.addProperty("id", loggInUser.getId());
+                    loggedInUserObject.addProperty("name", loggInUser.getF_name() + " (You)");
+                    loggedInUserObject.addProperty("bio", "Message your self");
+                    loggedInUserObject.addProperty("profile_img", "images//user//" + loggInUser.getId() + "//" + loggInUser.getId() + "avatar.png");
+
+                    groupedUsers.getAsJsonArray("").add(loggedInUserObject);
+                }
 
                 for (User user : userList) {
                     String firstLetter = user.getF_name().substring(0, 1).toUpperCase();
@@ -66,13 +85,8 @@ public class LoadUsers extends HttpServlet {
 
                     JsonObject userObject = new JsonObject();
                     userObject.addProperty("id", user.getId());
-                    if (user.getId() == Integer.parseInt(id)) {
-                        userObject.addProperty("name", user.getF_name() + " (You)");
-                        userObject.addProperty("bio", "Message your self");
-                    } else {
-                        userObject.addProperty("name", user.getF_name() + " " + user.getL_name());
-                        userObject.addProperty("bio", user.getBio());
-                    }
+                    userObject.addProperty("name", user.getF_name() + " " + user.getL_name());
+                    userObject.addProperty("bio", user.getBio());
                     userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
 
                     groupedUsers.getAsJsonArray(firstLetter).add(userObject);
