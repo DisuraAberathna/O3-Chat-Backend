@@ -65,13 +65,13 @@ public class LoadUsers extends HttpServlet {
 
                     Criteria loggedInUserCriteria = session.createCriteria(User.class);
                     loggedInUserCriteria.add(Restrictions.eq("id", Integer.valueOf(id)));
-                    User loggInUser = (User) loggedInUserCriteria.uniqueResult();
+                    User loggedInUser = (User) loggedInUserCriteria.uniqueResult();
 
                     JsonObject loggedInUserObject = new JsonObject();
-                    loggedInUserObject.addProperty("id", loggInUser.getId());
-                    loggedInUserObject.addProperty("name", loggInUser.getF_name() + " (You)");
+                    loggedInUserObject.addProperty("id", loggedInUser.getId());
+                    loggedInUserObject.addProperty("name", loggedInUser.getF_name() + " (You)");
                     loggedInUserObject.addProperty("bio", "Message your self");
-                    loggedInUserObject.addProperty("profile_img", "images//user//" + loggInUser.getId() + "//" + loggInUser.getId() + "avatar.png");
+                    loggedInUserObject.addProperty("profile_img", "images//user//" + loggedInUser.getId() + "//" + loggedInUser.getId() + "avatar.png");
 
                     groupedUsers.getAsJsonArray("").add(loggedInUserObject);
                 }

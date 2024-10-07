@@ -49,7 +49,7 @@ public class SignIn extends HttpServlet {
                 userCriteria.add(Restrictions.eq("password", password));
 
                 if (!userCriteria.list().isEmpty()) {
-                    User user = (User) userCriteria.list().get(0);
+                    User user = (User) userCriteria.uniqueResult();
 
                     if (user.getStatus() == 1) {
                         if (!user.getVerification().equals("Verified")) {
