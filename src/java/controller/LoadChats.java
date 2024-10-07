@@ -10,6 +10,7 @@ import com.google.gson.JsonObject;
 import entity.Chat;
 import entity.ChatStatus;
 import entity.User;
+import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -56,7 +57,12 @@ public class LoadChats extends HttpServlet {
                 User loggedInUser = (User) session.get(User.class, Integer.valueOf(loggedInId));
                 User otherUser = (User) session.get(User.class, Integer.valueOf(otherId));
 
+                Criteria deletedStatusCriteria = session.createCriteria(ChatStatus.class);
+                deletedStatusCriteria.add(Restrictions.eq("name", "Deleted"));
+                ChatStatus deletedChatStatus = (ChatStatus) deletedStatusCriteria.uniqueResult();
+
                 Criteria chatCriteria = session.createCriteria(Chat.class);
+                chatCriteria.add(Restrictions.ne("chatStatus", deletedChatStatus));
                 chatCriteria.add(Restrictions.or(
                         Restrictions.and(
                                 Restrictions.eq("from", loggedInUser),
@@ -68,38 +74,65 @@ public class LoadChats extends HttpServlet {
                         )));
                 List<Chat> chatList = chatCriteria.list();
 
-                Criteria statusCriteria = session.createCriteria(ChatStatus.class);
-                statusCriteria.add(Restrictions.eq("name", "Readed"));
-                ChatStatus chatStatus = (ChatStatus) statusCriteria.list().get(0);
+                Criteria readedStatusCriteria = session.createCriteria(ChatStatus.class);
+                readedStatusCriteria.add(Restrictions.eq("name", "Readed"));
+                ChatStatus readedChatStatus = (ChatStatus) readedStatusCriteria.uniqueResult();
 
                 JsonArray chats = new JsonArray();
 
                 for (Chat chat : chatList) {
                     JsonObject chatObject = new JsonObject();
                     chatObject.addProperty("id", chat.getId());
-                    chatObject.addProperty("msg", chat.getMessage());
-                    chatObject.addProperty("img", chat.getImg());
+                    chatObject.addProperty("fromUser", chat.getFrom().getF_name() + " " + chat.getFrom().getL_name());
+                    chatObject.addProperty("toUser", chat.getTo().getF_name() + " " + chat.getTo().getL_name());
+
+                    if (chat.getMessage() != null) {
+                        chatObject.addProperty("msg", chat.getMessage());
+                    }
+                    if (chat.getImg() != null) {
+                        String serverPath = req.getServletContext().getRealPath("");
+
+                        String condition1 = serverPath + File.separator + "images" + File.separator + "chat" + File.separator + loggedInUser.getId() + "-" + otherUser.getId() + File.separator + chat.getImg();
+                        File condition1File = new File(condition1);
+
+                        if (condition1File.exists()) {
+                            chatObject.addProperty("img", "images//chat//" + loggedInUser.getId() + "-" + otherUser.getId() + "//" + chat.getImg());
+                        }
+
+                        String condition2 = serverPath + File.separator + "images" + File.separator + "chat" + File.separator + otherUser.getId() + "-" + loggedInUser.getId() + File.separator + chat.getImg();
+                        File condition2File = new File(condition2);
+
+                        if (condition2File.exists()) {
+                            chatObject.addProperty("img", "images//chat//" + otherUser.getId() + "-" + loggedInUser.getId() + "//" + chat.getImg());
+                        }
+                    }
                     chatObject.addProperty("time", new SimpleDateFormat("hh:mm a").format(chat.getDateTime()));
                     chatObject.addProperty("status", chat.getChatStatus().getId());
                     if (chat.getFrom().equals(loggedInUser)) {
                         chatObject.addProperty("side", "right");
-                        chat.setChatStatus(chatStatus);
                     } else {
                         chatObject.addProperty("side", "left");
                     }
                     if (chat.getReply() != null) {
                         chatObject.addProperty("replyUser", chat.getReply().getFrom().getF_name() + " " + chat.getReply().getFrom().getL_name());
+                        chatObject.addProperty("replyTime", new SimpleDateFormat("hh:mm a").format(chat.getReply().getDateTime()));
 
                         if (chat.getReply().getMessage() != null) {
                             chatObject.addProperty("replyMsg", chat.getReply().getMessage());
                         }
 
                         if (chat.getReply().getImg() != null) {
-                            chatObject.addProperty("replyImg", "images//chat//" + loggedInUser.getId() + "-" + otherUser.getId() + chat.getReply().getImg());
+                            chatObject.addProperty("replyImg", "images//chat//" + loggedInUser.getId() + "-" + otherUser.getId() + "//" + chat.getReply().getImg());
                         }
                     }
 
                     chats.add(chatObject);
+
+                    if (chat.getTo().equals(loggedInUser)) {
+                        chat.setChatStatus(readedChatStatus);
+                        session.update(chat);
+                        session.beginTransaction().commit();
+                    }
                 }
 
                 responseObject.add("chats", chats);
