@@ -50,7 +50,11 @@ public class SendMessage extends HttpServlet {
             User toUser = (User) session.get(User.class, Integer.valueOf(toId));
 
             Criteria statusCriteria = session.createCriteria(ChatStatus.class);
-            statusCriteria.add(Restrictions.eq("name", "Delivered"));
+            if (fromUser.equals(toUser)) {
+                statusCriteria.add(Restrictions.eq("name", "Readed"));
+            } else {
+                statusCriteria.add(Restrictions.eq("name", "Delivered"));
+            }
             ChatStatus chatStatus = (ChatStatus) statusCriteria.list().get(0);
 
             Chat chat = new Chat();
@@ -65,9 +69,27 @@ public class SendMessage extends HttpServlet {
             if (image != null) {
                 String applicationPath = req.getServletContext().getRealPath("");
                 String newApplicationPath = applicationPath.replace("build" + File.separator + "web", "web");
-                String fileName = fromUser.getId() + "-" + toUser.getId() + "message" + System.currentTimeMillis() + ".png";
+                String fileName = null;
 
-                File folder = new File(newApplicationPath + "//images//chat//" + fromUser.getId() + "-" + toUser.getId());
+                String condition1 = applicationPath + File.separator + "images" + File.separator + "chat" + File.separator + fromUser.getId() + "-" + toUser.getId() + File.separator;
+                File condition1File = new File(condition1);
+
+                String condition2 = applicationPath + File.separator + "images" + File.separator + "chat" + File.separator + toUser.getId() + "-" + fromUser.getId() + File.separator;
+                File condition2File = new File(condition2);
+
+                File folder = null;
+
+                if (condition1File.exists()) {
+                    folder = new File(newApplicationPath + "//images//chat//" + fromUser.getId() + "-" + toUser.getId());
+                    fileName = fromUser.getId() + "-" + toUser.getId() + "message" + System.currentTimeMillis() + ".png";
+                } else if (condition2File.exists()) {
+                    folder = new File(newApplicationPath + "//images//chat//" + toUser.getId() + "-" + fromUser.getId());
+                    fileName = toUser.getId() + "-" + fromUser.getId() + "message" + System.currentTimeMillis() + ".png";
+                } else {
+                    folder = new File(newApplicationPath + "//images//chat//" + fromUser.getId() + "-" + toUser.getId());
+                    fileName = fromUser.getId() + "-" + toUser.getId() + "message" + System.currentTimeMillis() + ".png";
+                }
+
                 folder.mkdir();
 
                 File imageFile = new File(folder, fileName);
