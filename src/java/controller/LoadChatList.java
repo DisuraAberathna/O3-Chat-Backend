@@ -93,8 +93,8 @@ public class LoadChatList extends HttpServlet {
 
                     chatUsersCriteria.addOrder(Order.desc("id"));
                     List<Chat> dbChatCountList = chatUsersCriteria.list();
+                    
                     chatUsersCriteria.setMaxResults(1);
-
                     List<Chat> dbChatList = chatUsersCriteria.list();
 
                     if (!dbChatList.isEmpty()) {
