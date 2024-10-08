@@ -12,11 +12,8 @@ import entity.ChatStatus;
 import entity.User;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -28,7 +25,6 @@ import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.criterion.Order;
-import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 
 /**
@@ -93,7 +89,7 @@ public class LoadChatList extends HttpServlet {
 
                     chatUsersCriteria.addOrder(Order.desc("id"));
                     List<Chat> dbChatCountList = chatUsersCriteria.list();
-                    
+
                     chatUsersCriteria.setMaxResults(1);
                     List<Chat> dbChatList = chatUsersCriteria.list();
 
@@ -121,7 +117,7 @@ public class LoadChatList extends HttpServlet {
                         if (dbChatList.get(0).getMessage() != null) {
                             jsonChatItem.addProperty("msg", dbChatList.get(0).getMessage());
                         }
-                        if (dbChatList.get(0).getImg()!= null) {
+                        if (dbChatList.get(0).getImg() != null) {
                             jsonChatItem.addProperty("msg", "Image");
                         }
                         jsonChatItem.addProperty("time", timeFormat.format(dbChatList.get(0).getDateTime()));
@@ -152,6 +148,7 @@ public class LoadChatList extends HttpServlet {
                 System.out.println(e.getMessage());
                 responseObject.addProperty("msg", "Can not process this request!");
             }
+
             session.close();
         }
 
