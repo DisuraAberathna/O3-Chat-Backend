@@ -35,6 +35,8 @@ public class Verify extends HttpServlet {
         JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
         String id = reqObject.get("id").getAsString();
         String otp = reqObject.get("otp").getAsString();
+        String serverOTP = reqObject.get("serverOTP").getAsString();
+        String password = reqObject.get("password").getAsString();
 
         if (id.isEmpty()) {
             responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
@@ -48,9 +50,7 @@ public class Verify extends HttpServlet {
             Session session = HibernateUtil.getSessionFactory().openSession();
 
             try {
-                Criteria userCriteria = session.createCriteria(User.class);
-                userCriteria.add(Restrictions.eq("id", Integer.valueOf(id)));
-                User user = (User) userCriteria.uniqueResult();
+                User user = (User) session.get(User.class, Integer.valueOf(id));
 
                 if (user.getVerification().equals(otp)) {
                     user.setVerification("Verified");
@@ -70,6 +70,13 @@ public class Verify extends HttpServlet {
 
                     responseObject.addProperty("ok", true);
                     responseObject.add("user", userObject);
+                } else if (user.getVerification().equals("Verified") && !serverOTP.isEmpty() && !password.isEmpty()) {
+                    user.setPassword(password);
+
+                    session.update(user);
+                    session.beginTransaction().commit();
+
+                    responseObject.addProperty("ok", true);
                 } else {
                     responseObject.addProperty("msg", "OTP mismatched!");
                 }
