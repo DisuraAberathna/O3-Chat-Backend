@@ -39,7 +39,7 @@ public class UpdateBio extends HttpServlet {
         } else if (!Validate.isInteger(id)) {
             responseObject.addProperty("msg", "Cloudn't process this request! \\nYou are a third-party person.");
         } else if (bio.isEmpty()) {
-            responseObject.addProperty("msg", "Please enter your bio.");
+            responseObject.addProperty("msg", "Please enter your bio!");
         } else {
             Session session = HibernateUtil.getSessionFactory().openSession();
 
