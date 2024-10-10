@@ -28,8 +28,6 @@ import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Order;
-import org.hibernate.criterion.ProjectionList;
-import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 
 /**
@@ -164,9 +162,8 @@ public class LoadChatList extends HttpServlet {
             } catch (NumberFormatException | HibernateException e) {
                 System.out.println(e.getMessage());
                 responseObject.addProperty("msg", "Can not process this request!");
-            } finally {
-                session.close();
             }
+            session.close();
         }
 
         resp.setContentType("application/json");
