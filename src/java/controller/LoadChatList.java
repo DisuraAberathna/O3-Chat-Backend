@@ -13,7 +13,9 @@ import entity.User;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -24,7 +26,10 @@ import model.Validate;
 import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
+import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Order;
+import org.hibernate.criterion.ProjectionList;
+import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 
 /**
@@ -47,18 +52,20 @@ public class LoadChatList extends HttpServlet {
         if (id.isEmpty()) {
             responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
         } else if (!Validate.isInteger(id)) {
-            responseObject.addProperty("msg", "Cloudn't process this request! \\nYou are a third-party person.");
+            responseObject.addProperty("msg", "Couldn't process this request! You are a third-party person.");
         } else {
             Session session = HibernateUtil.getSessionFactory().openSession();
 
             try {
                 User loggedInUser = (User) session.get(User.class, Integer.valueOf(id));
 
-                Criteria otherUserCriteria = session.createCriteria(User.class);
+                Criteria userSearchCriteria = session.createCriteria(User.class);
                 if (!searchText.isEmpty()) {
-                    otherUserCriteria.add(Restrictions.like("f_name", searchText + "%"));
+                    userSearchCriteria.add(
+                            Restrictions.like("f_name", searchText, MatchMode.END)
+                    );
                 }
-                List<User> otherUserList = otherUserCriteria.list();
+                List<User> searchResults = userSearchCriteria.list();
 
                 Criteria notReadedStatusCriteria = session.createCriteria(ChatStatus.class);
                 notReadedStatusCriteria.add(Restrictions.eq("name", "Delivered"));
@@ -68,78 +75,88 @@ public class LoadChatList extends HttpServlet {
                 deletedStatusCriteria.add(Restrictions.eq("name", "Deleted"));
                 ChatStatus deletedChatStatus = (ChatStatus) deletedStatusCriteria.uniqueResult();
 
+                Criteria chatUsersCriteria = session.createCriteria(Chat.class);
+                chatUsersCriteria.add(Restrictions.ne("chatStatus", deletedChatStatus));
+                chatUsersCriteria.add(
+                        Restrictions.or(
+                                Restrictions.eq("from", loggedInUser),
+                                Restrictions.eq("to", loggedInUser)
+                        )
+                );
+                chatUsersCriteria.addOrder(Order.desc("id"));
+
+                List<Chat> chatList = chatUsersCriteria.list();
                 JsonArray usersArray = new JsonArray();
-
-                for (User otherUser : otherUserList) {
-
-                    Criteria chatUsersCriteria = session.createCriteria(Chat.class);
-                    chatUsersCriteria.add(Restrictions.ne("chatStatus", deletedChatStatus));
-                    chatUsersCriteria.add(
-                            Restrictions.or(
-                                    Restrictions.and(
-                                            Restrictions.eq("from", loggedInUser),
-                                            Restrictions.eq("to", otherUser)
-                                    ),
-                                    Restrictions.and(
-                                            Restrictions.eq("from", otherUser),
-                                            Restrictions.eq("to", loggedInUser)
-                                    )
-                            )
-                    );
-
-                    chatUsersCriteria.addOrder(Order.desc("id"));
-                    List<Chat> dbChatCountList = chatUsersCriteria.list();
-
-                    chatUsersCriteria.setMaxResults(1);
-                    List<Chat> dbChatList = chatUsersCriteria.list();
-
-                    if (!dbChatList.isEmpty()) {
-                        JsonObject jsonChatItem = new JsonObject();
-                        jsonChatItem.addProperty("id", otherUser.getId());
-                        if (otherUser.equals(loggedInUser)) {
-                            jsonChatItem.addProperty("name", loggedInUser.getF_name() + " (You)");
-                            jsonChatItem.addProperty("bio", "Message your self");
-                        } else {
-                            jsonChatItem.addProperty("name", otherUser.getF_name() + " " + otherUser.getL_name());
-                            jsonChatItem.addProperty("bio", otherUser.getBio());
-                        }
-                        jsonChatItem.addProperty("profile_img", "images//user//" + otherUser.getId() + "//" + otherUser.getId() + "avatar.png");
-
-                        SimpleDateFormat timeFormat;
-                        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-
-                        if (format.format(dbChatList.get(0).getDateTime()).equals(format.format(new Date()))) {
-                            timeFormat = new SimpleDateFormat("hh:mm a");
-                        } else {
-                            timeFormat = new SimpleDateFormat("yyyy/MM/dd");
-                        }
-
-                        if (dbChatList.get(0).getMessage() != null) {
-                            jsonChatItem.addProperty("msg", dbChatList.get(0).getMessage());
-                        }
-                        if (dbChatList.get(0).getImg() != null) {
-                            jsonChatItem.addProperty("msg", "Image");
-                        }
-                        jsonChatItem.addProperty("time", timeFormat.format(dbChatList.get(0).getDateTime()));
-                        if (dbChatList.get(0).getFrom().equals(loggedInUser)) {
-                            jsonChatItem.addProperty("view", true);
-                        } else {
-                            jsonChatItem.addProperty("view", false);
-                        }
-                        jsonChatItem.addProperty("status", dbChatList.get(0).getChatStatus().getId());
-
-                        int count = 0;
-                        for (Chat chat : dbChatCountList) {
-                            if (chat.getTo().equals(loggedInUser) && chat.getFrom().equals(dbChatList.get(0).getFrom()) && chat.getChatStatus().equals(notReadedChatStatus)) {
-                                count++;
-                            }
-                        }
-
-                        jsonChatItem.addProperty("count", count);
-
-                        usersArray.add(jsonChatItem);
+                Set<Integer> addedUserIds = new HashSet<>();
+                for (Chat chat : chatList) {
+                    if (chat == null) {
+                        continue;
                     }
 
+                    User otherUser = (chat.getFrom().equals(loggedInUser)) ? chat.getTo() : chat.getFrom();
+
+                    if (otherUser == null || addedUserIds.contains(otherUser.getId())) {
+                        continue;
+                    }
+
+                    if (!searchResults.contains(otherUser) && !searchText.isEmpty()) {
+                        continue;
+                    }
+
+                    JsonObject jsonChatItem = new JsonObject();
+                    jsonChatItem.addProperty("id", otherUser.getId());
+
+                    if (otherUser.equals(loggedInUser)) {
+                        jsonChatItem.addProperty("name", loggedInUser.getF_name() + " (You)");
+                        jsonChatItem.addProperty("bio", "Message yourself");
+                    } else {
+                        jsonChatItem.addProperty("name", otherUser.getF_name() + " " + otherUser.getL_name());
+                        jsonChatItem.addProperty("bio", otherUser.getBio());
+                    }
+
+                    jsonChatItem.addProperty("profile_img", "images//user//" + otherUser.getId() + "//" + otherUser.getId() + "avatar.png");
+
+                    SimpleDateFormat timeFormat;
+                    SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+
+                    if (format.format(chat.getDateTime()).equals(format.format(new Date()))) {
+                        timeFormat = new SimpleDateFormat("hh:mm a");
+                    } else {
+                        timeFormat = new SimpleDateFormat("yyyy/MM/dd");
+                    }
+
+                    if (chat.getMessage() != null) {
+                        jsonChatItem.addProperty("msg", chat.getMessage());
+                    } else if (chat.getImg() != null) {
+                        jsonChatItem.addProperty("msg", "Image");
+                    }
+
+                    jsonChatItem.addProperty("time", timeFormat.format(chat.getDateTime()));
+
+                    if (chat.getFrom().equals(loggedInUser)) {
+                        jsonChatItem.addProperty("view", true);
+                    } else {
+                        jsonChatItem.addProperty("view", false);
+                    }
+
+                    if (chat.getChatStatus() == null) {
+                        continue;
+                    }
+
+                    jsonChatItem.addProperty("status", chat.getChatStatus().getId());
+
+                    int count = 0;
+                    for (Chat unreadChat : chatList) {
+                        if (unreadChat.getTo().equals(loggedInUser)
+                                && unreadChat.getFrom().equals(chat.getFrom())
+                                && unreadChat.getChatStatus().equals(notReadedChatStatus)) {
+                            count++;
+                        }
+                    }
+                    jsonChatItem.addProperty("count", count);
+
+                    usersArray.add(jsonChatItem);
+                    addedUserIds.add(otherUser.getId());
                 }
 
                 responseObject.add("chatList", usersArray);
@@ -147,13 +164,12 @@ public class LoadChatList extends HttpServlet {
             } catch (NumberFormatException | HibernateException e) {
                 System.out.println(e.getMessage());
                 responseObject.addProperty("msg", "Can not process this request!");
+            } finally {
+                session.close();
             }
-
-            session.close();
         }
 
         resp.setContentType("application/json");
         resp.getWriter().write(gson.toJson(responseObject));
     }
-
 }
