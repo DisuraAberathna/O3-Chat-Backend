@@ -21,8 +21,8 @@ import org.hibernate.Session;
  *
  * @author SINGER
  */
-@WebServlet(name = "UpdateBio", urlPatterns = {"/UpdateBio"})
-public class UpdateBio extends HttpServlet {
+@WebServlet(name = "Update", urlPatterns = {"/Update"})
+public class Update extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -31,15 +31,16 @@ public class UpdateBio extends HttpServlet {
         responseObject.addProperty("ok", false);
 
         JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
-        String id = reqObject.get("id").getAsString();
+        String id = reqObject.get("user").getAsString();
+        String username = reqObject.get("username").getAsString();
+        String f_name = reqObject.get("f_name").getAsString();
+        String l_name = reqObject.get("l_name").getAsString();
         String bio = reqObject.get("bio").getAsString();
 
         if (id.isEmpty()) {
             responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
         } else if (!Validate.isInteger(id)) {
             responseObject.addProperty("msg", "Cloudn't process this request! \\nYou are a third-party person.");
-        } else if (bio.isEmpty()) {
-            responseObject.addProperty("msg", "Please enter your bio!");
         } else {
             Session session = HibernateUtil.getSessionFactory().openSession();
 
@@ -47,10 +48,34 @@ public class UpdateBio extends HttpServlet {
                 User user = (User) session.get(User.class, Integer.valueOf(id));
 
                 if (user != null) {
-                    user.setBio(bio);
-
-                    session.update(user);
-                    session.beginTransaction().commit();
+                    if (username != null) {
+                        if (!username.isEmpty() && !user.getUsername().equals(username)) {
+                            user.setUsername(username);
+                            session.update(user);
+                            session.beginTransaction().commit();
+                        }
+                    }
+                    if (f_name != null) {
+                        if (!f_name.isEmpty() && !user.getF_name().equals(f_name)) {
+                            user.setF_name(f_name);
+                            session.update(user);
+                            session.beginTransaction().commit();
+                        }
+                    }
+                    if (l_name != null) {
+                        if (!l_name.isEmpty() && !user.getL_name().equals(l_name)) {
+                            user.setL_name(l_name);
+                            session.update(user);
+                            session.beginTransaction().commit();
+                        }
+                    }
+                    if (bio != null) {
+                        if (!bio.isEmpty() && !user.getBio().equals(bio)) {
+                            user.setBio(bio);
+                            session.update(user);
+                            session.beginTransaction().commit();
+                        }
+                    }
 
                     JsonObject userObject = new JsonObject();
                     userObject.addProperty("id", user.getId());
