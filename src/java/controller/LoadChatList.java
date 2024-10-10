@@ -84,8 +84,9 @@ public class LoadChatList extends HttpServlet {
                 chatUsersCriteria.addOrder(Order.desc("id"));
 
                 List<Chat> chatList = chatUsersCriteria.list();
-                JsonArray usersArray = new JsonArray();
                 Set<Integer> addedUserIds = new HashSet<>();
+                JsonArray usersArray = new JsonArray();
+                
                 for (Chat chat : chatList) {
                     if (chat == null) {
                         continue;
