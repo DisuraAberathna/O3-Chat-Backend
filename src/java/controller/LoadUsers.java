@@ -56,42 +56,29 @@ public class LoadUsers extends HttpServlet {
                 userCriteria.addOrder(Order.asc("f_name"));
                 List<User> userList = userCriteria.list();
 
-                JsonObject groupedUsers = new JsonObject();
+                User loggedInUser = (User) session.get(User.class, Integer.valueOf(id));
 
-                if (!userList.isEmpty() && searchText.isEmpty()) {
-                    if (!groupedUsers.has("")) {
-                        groupedUsers.add("", new JsonArray());
-                    }
+                JsonArray users = new JsonArray();
 
-                    Criteria loggedInUserCriteria = session.createCriteria(User.class);
-                    loggedInUserCriteria.add(Restrictions.eq("id", Integer.valueOf(id)));
-                    User loggedInUser = (User) loggedInUserCriteria.uniqueResult();
-
+                if (searchText.isEmpty()) {
                     JsonObject loggedInUserObject = new JsonObject();
                     loggedInUserObject.addProperty("id", loggedInUser.getId());
-                    loggedInUserObject.addProperty("name", loggedInUser.getF_name() + " (You)");
+                    loggedInUserObject.addProperty("name", loggedInUser.getF_name() + " " + loggedInUser.getL_name() + " (You)");
                     loggedInUserObject.addProperty("bio", "Message your self");
                     loggedInUserObject.addProperty("profile_img", "images//user//" + loggedInUser.getId() + "//" + loggedInUser.getId() + "avatar.png");
-
-                    groupedUsers.getAsJsonArray("").add(loggedInUserObject);
+                    users.add(loggedInUserObject);
                 }
 
                 for (User user : userList) {
-                    String firstLetter = user.getF_name().substring(0, 1).toUpperCase();
-
-                    if (!groupedUsers.has(firstLetter)) {
-                        groupedUsers.add(firstLetter, new JsonArray());
-                    }
-
                     JsonObject userObject = new JsonObject();
                     userObject.addProperty("id", user.getId());
                     userObject.addProperty("name", user.getF_name() + " " + user.getL_name());
                     userObject.addProperty("bio", user.getBio());
                     userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
-
-                    groupedUsers.getAsJsonArray(firstLetter).add(userObject);
+                    users.add(userObject);
                 }
-                responseObject.add("groupedUsers", groupedUsers);
+
+                responseObject.add("users", users);
                 responseObject.addProperty("ok", true);
             } catch (HibernateException e) {
                 System.out.println(e.getMessage());
