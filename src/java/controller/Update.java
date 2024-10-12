@@ -51,31 +51,29 @@ public class Update extends HttpServlet {
                     if (username != null) {
                         if (!username.isEmpty() && !user.getUsername().equals(username)) {
                             user.setUsername(username);
-                            session.update(user);
-                            session.beginTransaction().commit();
                         }
                     }
+
                     if (f_name != null) {
                         if (!f_name.isEmpty() && !user.getF_name().equals(f_name)) {
                             user.setF_name(f_name);
-                            session.update(user);
-                            session.beginTransaction().commit();
                         }
                     }
+
                     if (l_name != null) {
                         if (!l_name.isEmpty() && !user.getL_name().equals(l_name)) {
                             user.setL_name(l_name);
-                            session.update(user);
-                            session.beginTransaction().commit();
                         }
                     }
+
                     if (bio != null) {
                         if (!bio.isEmpty() && !user.getBio().equals(bio)) {
                             user.setBio(bio);
-                            session.update(user);
-                            session.beginTransaction().commit();
                         }
                     }
+
+                    session.update(user);
+                    session.beginTransaction().commit();
 
                     JsonObject userObject = new JsonObject();
                     userObject.addProperty("id", user.getId());
