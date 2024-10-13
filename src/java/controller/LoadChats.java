@@ -57,12 +57,7 @@ public class LoadChats extends HttpServlet {
                 User loggedInUser = (User) session.get(User.class, Integer.valueOf(loggedInId));
                 User otherUser = (User) session.get(User.class, Integer.valueOf(otherId));
 
-                Criteria deletedStatusCriteria = session.createCriteria(ChatStatus.class);
-                deletedStatusCriteria.add(Restrictions.eq("name", "Deleted"));
-                ChatStatus deletedChatStatus = (ChatStatus) deletedStatusCriteria.uniqueResult();
-
                 Criteria chatCriteria = session.createCriteria(Chat.class);
-                chatCriteria.add(Restrictions.ne("chatStatus", deletedChatStatus));
                 chatCriteria.add(Restrictions.or(
                         Restrictions.and(
                                 Restrictions.eq("from", loggedInUser),

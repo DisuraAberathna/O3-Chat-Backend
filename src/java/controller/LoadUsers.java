@@ -63,7 +63,7 @@ public class LoadUsers extends HttpServlet {
                 if (searchText.isEmpty()) {
                     JsonObject loggedInUserObject = new JsonObject();
                     loggedInUserObject.addProperty("id", loggedInUser.getId());
-                    loggedInUserObject.addProperty("name", loggedInUser.getF_name() + " " + loggedInUser.getL_name() + " (You)");
+                    loggedInUserObject.addProperty("name", loggedInUser.getF_name() + " (You)");
                     loggedInUserObject.addProperty("bio", "Message your self");
                     loggedInUserObject.addProperty("profile_img", "images//user//" + loggedInUser.getId() + "//" + loggedInUser.getId() + "avatar.png");
                     users.add(loggedInUserObject);
