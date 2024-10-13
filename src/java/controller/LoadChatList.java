@@ -69,12 +69,7 @@ public class LoadChatList extends HttpServlet {
                 notReadedStatusCriteria.add(Restrictions.eq("name", "Delivered"));
                 ChatStatus notReadedChatStatus = (ChatStatus) notReadedStatusCriteria.uniqueResult();
 
-                Criteria deletedStatusCriteria = session.createCriteria(ChatStatus.class);
-                deletedStatusCriteria.add(Restrictions.eq("name", "Deleted"));
-                ChatStatus deletedChatStatus = (ChatStatus) deletedStatusCriteria.uniqueResult();
-
                 Criteria chatUsersCriteria = session.createCriteria(Chat.class);
-                chatUsersCriteria.add(Restrictions.ne("chatStatus", deletedChatStatus));
                 chatUsersCriteria.add(
                         Restrictions.or(
                                 Restrictions.eq("from", loggedInUser),
@@ -86,7 +81,7 @@ public class LoadChatList extends HttpServlet {
                 List<Chat> chatList = chatUsersCriteria.list();
                 Set<Integer> addedUserIds = new HashSet<>();
                 JsonArray usersArray = new JsonArray();
-                
+
                 for (Chat chat : chatList) {
                     if (chat == null) {
                         continue;
