@@ -23,6 +23,7 @@ import model.HibernateUtil;
 import model.Validate;
 import org.hibernate.Criteria;
 import org.hibernate.Session;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 
 /**
@@ -67,6 +68,7 @@ public class LoadChats extends HttpServlet {
                                 Restrictions.eq("to", loggedInUser),
                                 Restrictions.eq("from", otherUser)
                         )));
+                chatCriteria.addOrder(Order.asc("id"));
                 List<Chat> chatList = chatCriteria.list();
 
                 Criteria readedStatusCriteria = session.createCriteria(ChatStatus.class);
