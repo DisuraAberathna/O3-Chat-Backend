@@ -56,6 +56,9 @@ public class User implements Serializable {
     @Column(name = "bio", length = 200, nullable = false)
     private String bio;
 
+    @Column(name = "online", nullable = false)
+    private int online;
+
     public User() {
     }
 
@@ -145,6 +148,14 @@ public class User implements Serializable {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public int getOnline() {
+        return online;
+    }
+
+    public void setOnline(int online) {
+        this.online = online;
     }
 
 }

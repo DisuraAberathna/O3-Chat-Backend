@@ -57,7 +57,7 @@ public class Verify extends HttpServlet {
                     session.beginTransaction().commit();
 
                     JsonObject userObject = new JsonObject();
-                    userObject.addProperty("id", user.getId());
+                    userObject.addProperty("id", String.valueOf(user.getId()));
                     userObject.addProperty("f_name", user.getF_name());
                     userObject.addProperty("l_name", user.getL_name());
                     userObject.addProperty("username", user.getUsername());
