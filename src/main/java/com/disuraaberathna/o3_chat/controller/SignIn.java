@@ -19,7 +19,7 @@ import org.hibernate.Session;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(name = "SignIn", urlPatterns = {"/SignIn"})
+@WebServlet(name = "SignIn", urlPatterns = {"/sign-in"})
 public class SignIn extends HttpServlet {
 
     @Override
