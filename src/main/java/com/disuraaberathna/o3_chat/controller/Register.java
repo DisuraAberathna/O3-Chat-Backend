@@ -27,15 +27,13 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Date;
-import java.util.List;
 
 @MultipartConfig
-@WebServlet(name = "Register", urlPatterns = {"/Register"})
+@WebServlet(name = "Register", urlPatterns = {"/register"})
 public class Register extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        Gson gson = new Gson();
         JsonObject responseObject = new JsonObject();
         responseObject.addProperty("ok", false);
 
@@ -77,67 +75,63 @@ public class Register extends HttpServlet {
                 CriteriaQuery<User> mobileQuery = cb.createQuery(User.class);
                 Root<User> mobileRoot = mobileQuery.from(User.class);
                 mobileQuery.select(mobileRoot).where(cb.equal(mobileRoot.get("mobile"), mobile));
-                if (!session.createQuery(mobileQuery).getResultList().isEmpty()) {
-                    responseObject.addProperty("msg", "Mobile number already exists!");
-                    return;
-                }
-
+                
                 CriteriaQuery<User> usernameQuery = cb.createQuery(User.class);
                 Root<User> usernameRoot = usernameQuery.from(User.class);
                 usernameQuery.select(usernameRoot).where(cb.equal(usernameRoot.get("username"), username));
-                if (!session.createQuery(usernameQuery).getResultList().isEmpty()) {
-                    responseObject.addProperty("msg", "Username already exists!");
-                    return;
-                }
-
+                
                 CriteriaQuery<User> emailQuery = cb.createQuery(User.class);
                 Root<User> emailRoot = emailQuery.from(User.class);
                 emailQuery.select(emailRoot).where(cb.equal(emailRoot.get("email"), email));
-                if (!session.createQuery(emailQuery).getResultList().isEmpty()) {
+
+                if (!session.createQuery(mobileQuery).getResultList().isEmpty()) {
+                    responseObject.addProperty("msg", "Mobile number already exists!");
+                } else if (!session.createQuery(usernameQuery).getResultList().isEmpty()) {
+                    responseObject.addProperty("msg", "Username already exists!");
+                } else if (!session.createQuery(emailQuery).getResultList().isEmpty()) {
                     responseObject.addProperty("msg", "Email already exists!");
-                    return;
+                } else {
+                    int otp = (int) (Math.random() * 1000000);
+                    String hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray());
+
+                    User user = new User();
+                    user.setF_name(f_name);
+                    user.setL_name(l_name);
+                    user.setUsername(username);
+                    user.setMobile(mobile);
+                    user.setEmail(email);
+                    user.setPassword(hashedPassword);
+                    user.setRegistered_date(new Date());
+                    user.setVerification(String.valueOf(otp));
+                    user.setStatus(1);
+                    user.setBio("Hey there! I am using O3 Chat.");
+
+                    session.persist(user);
+                    tx.commit();
+
+                    Thread mailSender = new Thread(() -> {
+                        String content = "<html><body><h1>Verification Code</h1>"
+                                + "<p>Hello User,</p>"
+                                + "<p>Your OTP is: <strong>" + otp + "</strong></p>"
+                                + "<p>If you did not request this, ignore this email.</p>"
+                                + "</body></html>";
+                        Mail.sendMail(email, "Verify Your Account - O3 Chat", content);
+                    });
+                    mailSender.start();
+
+                    String applicationPath = req.getServletContext().getRealPath("");
+                    String newApplicationPath = applicationPath.replace("build" + File.separator + "web", "web");
+                    File folder = new File(newApplicationPath + "/images/user/" + user.getId());
+                    folder.mkdirs();
+
+                    File imageFile = new File(folder, user.getId() + "avatar.png");
+                    try (InputStream inputStreamImage = image.getInputStream()) {
+                        Files.copy(inputStreamImage, imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    }
+
+                    responseObject.addProperty("ok", true);
+                    responseObject.addProperty("user", user.getId());
                 }
-
-                int otp = (int) (Math.random() * 1000000);
-                String hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray());
-
-                User user = new User();
-                user.setF_name(f_name);
-                user.setL_name(l_name);
-                user.setUsername(username);
-                user.setMobile(mobile);
-                user.setEmail(email);
-                user.setPassword(hashedPassword);
-                user.setRegistered_date(new Date());
-                user.setVerification(String.valueOf(otp));
-                user.setStatus(1);
-                user.setBio("Hey there! I am using O3 Chat.");
-
-                session.persist(user);
-                tx.commit();
-
-                Thread mailSender = new Thread(() -> {
-                    String content = "<html><body><h1>Verification Code</h1>"
-                            + "<p>Hello User,</p>"
-                            + "<p>Your OTP is: <strong>" + otp + "</strong></p>"
-                            + "<p>If you did not request this, ignore this email.</p>"
-                            + "</body></html>";
-                    Mail.sendMail(email, "Verify Your Account - O3 Chat", content);
-                });
-                mailSender.start();
-
-                String applicationPath = req.getServletContext().getRealPath("");
-                String newApplicationPath = applicationPath.replace("build" + File.separator + "web", "web");
-                File folder = new File(newApplicationPath + "/images/user/" + user.getId());
-                folder.mkdirs();
-
-                File imageFile = new File(folder, user.getId() + "avatar.png");
-                try (InputStream inputStreamImage = image.getInputStream()) {
-                    Files.copy(inputStreamImage, imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                }
-
-                responseObject.addProperty("ok", true);
-                responseObject.addProperty("user", user.getId());
 
             } catch (HibernateException e) {
                 e.printStackTrace();
