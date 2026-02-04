@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@WebServlet(name = "LoadUsers", urlPatterns = {"/LoadUsers"})
+@WebServlet(name = "LoadUsers", urlPatterns = {"/load-users"})
 public class LoadUsers extends HttpServlet {
 
     @Override
