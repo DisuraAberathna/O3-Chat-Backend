@@ -20,7 +20,7 @@ import org.hibernate.Transaction;
 import java.io.IOException;
 import java.util.List;
 
-@WebServlet(name = "UpdateUsername", urlPatterns = {"/UpdateUsername"})
+@WebServlet(name = "UpdateUsername", urlPatterns = {"/update-username"})
 public class UpdateUsername extends HttpServlet {
 
     @Override
