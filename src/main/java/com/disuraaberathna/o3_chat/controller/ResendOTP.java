@@ -20,7 +20,7 @@ import org.hibernate.Transaction;
 
 import java.io.IOException;
 
-@WebServlet(name = "ResendOTP", urlPatterns = {"/ResendOTP"})
+@WebServlet(name = "ResendOTP", urlPatterns = {"/resend-otp"})
 public class ResendOTP extends HttpServlet {
 
     @Override
