@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-@WebServlet(name = "LoadChatList", urlPatterns = {"/LoadChatList"})
+@WebServlet(name = "LoadChatList", urlPatterns = {"/load-chat-list"})
 public class LoadChatList extends HttpServlet {
 
     @Override
