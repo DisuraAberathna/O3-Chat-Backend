@@ -21,7 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 
 @MultipartConfig
-@WebServlet(name = "SaveProfileImage", urlPatterns = {"/SaveProfileImage"})
+@WebServlet(name = "SaveProfileImage", urlPatterns = {"/save-profile-image"})
 public class SaveProfileImage extends HttpServlet {
 
     @Override
