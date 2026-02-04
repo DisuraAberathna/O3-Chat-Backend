@@ -25,7 +25,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Date;
 
 @MultipartConfig
-@WebServlet(name = "SendMessage", urlPatterns = {"/SendMessage"})
+@WebServlet(name = "SendMessage", urlPatterns = {"/send-message"})
 public class SendMessage extends HttpServlet {
 
     @Override
