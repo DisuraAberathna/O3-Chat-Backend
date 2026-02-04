@@ -16,7 +16,7 @@ import org.hibernate.Session;
 
 import java.io.IOException;
 
-@WebServlet(name = "UpdatePassword", urlPatterns = {"/UpdatePassword"})
+@WebServlet(name = "UpdatePassword", urlPatterns = {"/update-password"})
 public class UpdatePassword extends HttpServlet {
 
     @Override
