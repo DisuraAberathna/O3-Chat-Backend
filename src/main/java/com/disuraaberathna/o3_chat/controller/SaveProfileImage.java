@@ -6,21 +6,14 @@ import com.disuraaberathna.o3_chat.model.Validate;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Part;
 import org.hibernate.Session;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 
-@MultipartConfig
 @WebServlet(name = "SaveProfileImage", urlPatterns = {"/save-profile-image"})
 public class SaveProfileImage extends HttpServlet {
 
@@ -30,14 +23,15 @@ public class SaveProfileImage extends HttpServlet {
         JsonObject responseObject = new JsonObject();
         responseObject.addProperty("ok", false);
 
-        String id = req.getParameter("id");
-        Part image = req.getPart("image");
+        JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
+        String id = reqObject.get("id").getAsString();
+        String profile_url = reqObject.get("profile_url").getAsString();
 
         if (id.isEmpty()) {
             responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
         } else if (!Validate.isInteger(id)) {
             responseObject.addProperty("msg", "Cloudn't process this request! \\nYou are a third-party person.");
-        } else if (image.getSubmittedFileName() == null) {
+        } else if (profile_url.isEmpty()) {
             responseObject.addProperty("msg", "Please select a profile picture!");
         } else {
 
@@ -45,14 +39,10 @@ public class SaveProfileImage extends HttpServlet {
                 User user = session.find(User.class, Integer.valueOf(id));
 
                 if (user != null) {
-                    String applicationPath = req.getServletContext().getRealPath("");
-                    String newApplicationPath = applicationPath.replace("build" + File.separator + "web", "web");
-                    File folder = new File(newApplicationPath + "//images//user//" + id);
-                    folder.mkdir();
-
-                    File imageFile = new File(folder, id + "avatar.png");
-                    InputStream inputStreamImage = image.getInputStream();
-                    Files.copy(inputStreamImage, imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    user.setProfile_url(profile_url);
+                    session.beginTransaction();
+                    session.merge(user);
+                    session.getTransaction().commit();
 
                     responseObject.addProperty("ok", true);
                 } else {
