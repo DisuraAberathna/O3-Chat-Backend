@@ -35,7 +35,7 @@ public class User implements Serializable {
     @Column(name = "registered_date", nullable = false)
     private Date registered_date;
 
-    @Column(name = "verification", length = 10, nullable = false)
+    @Column(name = "verification", length = 100, nullable = false)
     private String verification;
 
     @Column(name = "status", nullable = false)
@@ -43,6 +43,9 @@ public class User implements Serializable {
 
     @Column(name = "bio", length = 200, nullable = false)
     private String bio;
+
+    @Column(name = "profile_url", nullable = false)
+    private String profile_url;
 
     public User() {
     }
@@ -133,6 +136,14 @@ public class User implements Serializable {
 
     public void setBio(String bio) {
         this.bio = bio;
+    }
+
+    public String getProfile_url() {
+        return profile_url;
+    }
+
+    public void setProfile_url(String profile_url) {
+        this.profile_url = profile_url;
     }
 
 }
