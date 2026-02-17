@@ -32,8 +32,8 @@ public class LoadUsers extends HttpServlet {
         responseObject.addProperty("ok", false);
 
         JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
-        String id = reqObject.get("id").getAsString();
-        String searchText = reqObject.get("searchText").getAsString();
+        String id = reqObject.has("id") ? reqObject.get("id").getAsString() : "";
+        String searchText = reqObject.has("searchText") ? reqObject.get("searchText").getAsString() : "";
 
         if (id.isEmpty()) {
             responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
@@ -69,7 +69,8 @@ public class LoadUsers extends HttpServlet {
                     loggedInUserObject.addProperty("id", loggedInUser.getId());
                     loggedInUserObject.addProperty("name", loggedInUser.getF_name() + " (You)");
                     loggedInUserObject.addProperty("bio", "Message yourself");
-                    loggedInUserObject.addProperty("profile_img", "images//user//" + loggedInUser.getId() + "//" + loggedInUser.getId() + "avatar.png");
+                    loggedInUserObject.addProperty("profile_img", loggedInUser.getProfile_url());
+                    loggedInUserObject.addProperty("type", "self");
                     users.add(loggedInUserObject);
                 }
 
@@ -78,7 +79,8 @@ public class LoadUsers extends HttpServlet {
                     userObject.addProperty("id", user.getId());
                     userObject.addProperty("name", user.getF_name() + " " + user.getL_name());
                     userObject.addProperty("bio", user.getBio());
-                    userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
+                    userObject.addProperty("profile_img", user.getProfile_url());
+                    userObject.addProperty("type", "other");
                     users.add(userObject);
                 }
 
