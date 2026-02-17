@@ -1,5 +1,6 @@
 package com.disuraaberathna.o3_chat.controller;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import com.disuraaberathna.o3_chat.entity.User;
 import com.disuraaberathna.o3_chat.model.HibernateUtil;
 import com.disuraaberathna.o3_chat.model.Mail;
@@ -30,25 +31,37 @@ public class ResendOTP extends HttpServlet {
         responseObject.addProperty("ok", false);
 
         JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
-        String id = reqObject.get("userId").getAsString();
+        String userId = reqObject.has("userId") ? reqObject.get("userId").getAsString() : "";
+        String username = reqObject.has("username") ? reqObject.get("username").getAsString() : "";
+        String email = reqObject.has("email") ? reqObject.get("email").getAsString() : "";
 
-        if (id.isEmpty()) {
-            responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
-        } else if (!Validate.isInteger(id)) {
-            responseObject.addProperty("msg", "Cloudn't process this request! \\nYou are a third-party person.");
+        if (userId.isEmpty() && username.isEmpty() && email.isEmpty()) {
+            responseObject.addProperty("msg", "Please provide userId, username, or email!");
         } else {
 
             try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                 CriteriaBuilder builder = session.getCriteriaBuilder();
                 CriteriaQuery<User> query = builder.createQuery(User.class);
                 Root<User> root = query.from(User.class);
-                query.select(root)
-                        .where(builder.equal(root.get("id"), Integer.valueOf(id)));
 
-                User user = session.createQuery(query).uniqueResult();
+                final User user;
+
+                if (!userId.isEmpty() && Validate.isInteger(userId)) {
+                    query.select(root).where(builder.equal(root.get("id"), Integer.valueOf(userId)));
+                    user = session.createQuery(query).uniqueResult();
+                } else if (!username.isEmpty()) {
+                    query.select(root).where(builder.equal(root.get("username"), username));
+                    user = session.createQuery(query).uniqueResult();
+                } else if (!email.isEmpty()) {
+                    query.select(root).where(builder.equal(root.get("email"), email));
+                    user = session.createQuery(query).uniqueResult();
+                } else {
+                    user = null;
+                }
 
                 if (user != null) {
                     int otp = (int) (Math.random() * 1000000);
+                    String hashedOTP = BCrypt.withDefaults().hashToString(12, String.valueOf(otp).toCharArray());
 
                     Thread mailSender = new Thread(() -> {
                         String content = "<head>\n"
@@ -87,7 +100,7 @@ public class ResendOTP extends HttpServlet {
                     mailSender.start();
 
                     Transaction tx = session.beginTransaction();
-                    user.setVerification(String.valueOf(otp));
+                    user.setVerification(hashedOTP);
                     session.merge(user);
                     tx.commit();
 
