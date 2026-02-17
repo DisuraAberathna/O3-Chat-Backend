@@ -78,7 +78,7 @@ public class UpdateUsername extends HttpServlet {
                         userObject.addProperty("username", user.getUsername());
                         userObject.addProperty("mobile", user.getMobile());
                         userObject.addProperty("email", user.getEmail());
-                        userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
+                        userObject.addProperty("profile_img", user.getProfile_url());
                         userObject.addProperty("bio", user.getBio());
 
                         responseObject.add("user", userObject);
