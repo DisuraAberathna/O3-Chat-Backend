@@ -108,7 +108,7 @@ public class LoadChatList extends HttpServlet {
                         jsonChatItem.addProperty("bio", otherUser.getBio());
                     }
 
-                    jsonChatItem.addProperty("profile_img", "images//user//" + otherUser.getId() + "//" + otherUser.getId() + "avatar.png");
+                    jsonChatItem.addProperty("profile_img", otherUser.getProfile_url());
 
                     String formattedTime = dateFormat.format(chat.getDateTime()).equals(dateFormat.format(new Date()))
                             ? timeFormatToday.format(chat.getDateTime())
