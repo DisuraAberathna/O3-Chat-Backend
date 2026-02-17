@@ -11,24 +11,17 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.Part;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.Date;
 
-@MultipartConfig
 @WebServlet(name = "Register", urlPatterns = {"/register"})
 public class Register extends HttpServlet {
 
@@ -37,13 +30,17 @@ public class Register extends HttpServlet {
         JsonObject responseObject = new JsonObject();
         responseObject.addProperty("ok", false);
 
-        String f_name = req.getParameter("f_name");
-        String l_name = req.getParameter("l_name");
-        String password = req.getParameter("password");
-        String mobile = req.getParameter("mobile");
-        String username = req.getParameter("username");
-        String email = req.getParameter("email");
-        Part image = req.getPart("image");
+        Gson gson = new Gson();
+        JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
+        System.out.println("DEBUG Register payload: " + reqObject.toString());
+
+        String f_name = reqObject.has("f_name") ? reqObject.get("f_name").getAsString() : "";
+        String l_name = reqObject.has("l_name") ? reqObject.get("l_name").getAsString() : "";
+        String password = reqObject.has("password") ? reqObject.get("password").getAsString() : "";
+        String mobile = reqObject.has("mobile") ? reqObject.get("mobile").getAsString() : "";
+        String username = reqObject.has("username") ? reqObject.get("username").getAsString() : "";
+        String email = reqObject.has("email") ? reqObject.get("email").getAsString() : "";
+        String profile_url = reqObject.has("profile_img") ? reqObject.get("profile_img").getAsString() : "";
 
         if (f_name.isEmpty()) responseObject.addProperty("msg", "Please enter your first name!");
         else if (Validate.hasDigit(f_name)) responseObject.addProperty("msg", "First name cannot contain numbers!");
@@ -56,7 +53,7 @@ public class Register extends HttpServlet {
             responseObject.addProperty("msg", "Password must be between 5 and 20 characters!");
         else if (Validate.isValidPassword(password))
             responseObject.addProperty("msg", "Password must contain uppercase, lowercase, number, and special character!");
-        else if (image.getSubmittedFileName() == null)
+        else if (profile_url == null || profile_url.isEmpty())
             responseObject.addProperty("msg", "Please select a profile picture!");
         else if (mobile.isEmpty()) responseObject.addProperty("msg", "Please enter your mobile number!");
         else if (!Validate.isValidMobile(mobile))
@@ -93,6 +90,7 @@ public class Register extends HttpServlet {
                 } else {
                     int otp = (int) (Math.random() * 1000000);
                     String hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray());
+                    String hashedOTP = BCrypt.withDefaults().hashToString(12, String.valueOf(otp).toCharArray());
 
                     User user = new User();
                     user.setF_name(f_name);
@@ -102,9 +100,10 @@ public class Register extends HttpServlet {
                     user.setEmail(email);
                     user.setPassword(hashedPassword);
                     user.setRegistered_date(new Date());
-                    user.setVerification(String.valueOf(otp));
+                    user.setVerification(hashedOTP);
                     user.setStatus(1);
                     user.setBio("Hey there! I am using O3 Chat.");
+                    user.setProfile_url(profile_url);
 
                     session.persist(user);
                     tx.commit();
@@ -119,16 +118,6 @@ public class Register extends HttpServlet {
                     });
                     mailSender.start();
 
-                    String applicationPath = req.getServletContext().getRealPath("");
-                    String newApplicationPath = applicationPath.replace("build" + File.separator + "web", "web");
-                    File folder = new File(newApplicationPath + "/images/user/" + user.getId());
-                    folder.mkdirs();
-
-                    File imageFile = new File(folder, user.getId() + "avatar.png");
-                    try (InputStream inputStreamImage = image.getInputStream()) {
-                        Files.copy(inputStreamImage, imageFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    }
-
                     responseObject.addProperty("ok", true);
                     responseObject.addProperty("user", user.getId());
                 }
@@ -140,6 +129,6 @@ public class Register extends HttpServlet {
         }
 
         resp.setContentType("application/json");
-        resp.getWriter().write(new Gson().toJson(responseObject));
+        resp.getWriter().write(gson.toJson(responseObject));
     }
 }
