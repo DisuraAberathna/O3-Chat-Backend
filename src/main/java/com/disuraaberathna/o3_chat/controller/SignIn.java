@@ -37,45 +37,44 @@ public class SignIn extends HttpServlet {
         } else if (password.isEmpty()) {
             responseObject.addProperty("msg", "Please enter your password!");
         } else {
-            String hashedPassword = BCrypt.withDefaults().hashToString(12, password.toCharArray());
-
             try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                 CriteriaBuilder cb = session.getCriteriaBuilder();
                 CriteriaQuery<User> cq = cb.createQuery(User.class);
                 Root<User> root = cq.from(User.class);
 
-                cq.select(root)
-                        .where(
-                                cb.equal(root.get("username"), username),
-                                cb.equal(root.get("password"), hashedPassword)
-                        );
+                cq.select(root).where(cb.equal(root.get("username"), username));
 
                 List<User> users = session.createQuery(cq).getResultList();
 
                 if (!users.isEmpty()) {
                     User user = users.get(0);
 
-                    if (user.getStatus() == 1) {
-                        if (!user.getVerification().equals("Verified")) {
-                            responseObject.addProperty("msg", "Not Verified");
+                    BCrypt.Result result = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
 
-                            responseObject.addProperty("user", user.getId());
+                    if (result.verified) {
+                        if (user.getStatus() == 1) {
+                            if (!user.getVerification().equals("Verified")) {
+                                responseObject.addProperty("msg", "Not Verified");
+                                responseObject.addProperty("user", user.getId());
+                            } else {
+                                JsonObject userObject = new JsonObject();
+                                userObject.addProperty("id", user.getId());
+                                userObject.addProperty("f_name", user.getF_name());
+                                userObject.addProperty("l_name", user.getL_name());
+                                userObject.addProperty("username", user.getUsername());
+                                userObject.addProperty("mobile", user.getMobile());
+                                userObject.addProperty("email", user.getEmail());
+                                userObject.addProperty("profile_img", user.getProfile_url());
+                                userObject.addProperty("bio", user.getBio());
+
+                                responseObject.add("user", userObject);
+                            }
+                            responseObject.addProperty("ok", true);
                         } else {
-                            JsonObject userObject = new JsonObject();
-                            userObject.addProperty("id", user.getId());
-                            userObject.addProperty("f_name", user.getF_name());
-                            userObject.addProperty("l_name", user.getL_name());
-                            userObject.addProperty("username", user.getUsername());
-                            userObject.addProperty("mobile", user.getMobile());
-                            userObject.addProperty("email", user.getEmail());
-                            userObject.addProperty("profile_img", "images//user//" + user.getId() + "//" + user.getId() + "avatar.png");
-                            userObject.addProperty("bio", user.getBio());
-
-                            responseObject.add("user", userObject);
+                            responseObject.addProperty("msg", "Your account was suspended!");
                         }
-                        responseObject.addProperty("ok", true);
                     } else {
-                        responseObject.addProperty("msg", "Your account was suspended!");
+                        responseObject.addProperty("msg", "Invalid credentials!");
                     }
                 } else {
                     responseObject.addProperty("msg", "Invalid credentials!");
