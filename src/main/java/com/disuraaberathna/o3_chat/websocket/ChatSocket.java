@@ -110,6 +110,26 @@ public class ChatSocket {
                 boolean transactionActive = false;
 
                 for (Chat chat : chatList) {
+                    if (chat.getTo().getId() == loggedInUser.getId() && readedStatus != null) {
+                        if (chat.getChatStatus() == null || chat.getChatStatus().getId() != readedStatus.getId()) {
+                            if (!transactionActive) {
+                                tx = session.beginTransaction();
+                                transactionActive = true;
+                            }
+                            chat.setChatStatus(readedStatus);
+                            session.merge(chat);
+
+                            String senderId = String.valueOf(chat.getFrom().getId());
+                            if (sessions.containsKey(senderId)) {
+                                JsonObject payload = new JsonObject();
+                                payload.addProperty("type", "seen");
+                                payload.addProperty("chat_id", chat.getId());
+                                payload.addProperty("seen_by", userId);
+                                sessions.get(senderId).getAsyncRemote().sendText(gson.toJson(payload));
+                            }
+                        }
+                    }
+
                     JsonObject chatObject = new JsonObject();
                     chatObject.addProperty("id", chat.getId());
                     chatObject.addProperty("fromUser", chat.getFrom().getF_name() + " " + chat.getFrom().getL_name());
@@ -142,17 +162,6 @@ public class ChatSocket {
                     }
 
                     chats.add(chatObject);
-
-                    if (chat.getTo().getId() == loggedInUser.getId() && readedStatus != null) {
-                        if (chat.getChatStatus() == null || !chat.getChatStatus().getName().equals("Readed")) {
-                            if (!transactionActive) {
-                                tx = session.beginTransaction();
-                                transactionActive = true;
-                            }
-                            chat.setChatStatus(readedStatus);
-                            session.merge(chat);
-                        }
-                    }
                 }
 
                 if (transactionActive && tx != null) {
