@@ -24,11 +24,11 @@ public class Update extends HttpServlet {
         responseObject.addProperty("ok", false);
 
         JsonObject reqObject = gson.fromJson(req.getReader(), JsonObject.class);
-        String id = reqObject.get("user").getAsString();
-        String username = reqObject.get("username").getAsString();
-        String f_name = reqObject.get("f_name").getAsString();
-        String l_name = reqObject.get("l_name").getAsString();
-        String bio = reqObject.get("bio").getAsString();
+        String id = reqObject.has("user") ? reqObject.get("user").getAsString() : "";
+        String username = reqObject.has("username") ? reqObject.get("username").getAsString() : null;
+        String f_name = reqObject.has("f_name") ? reqObject.get("f_name").getAsString() : null;
+        String l_name = reqObject.has("l_name") ? reqObject.get("l_name").getAsString() : null;
+        String bio = reqObject.has("bio") ? reqObject.get("bio").getAsString() : null;
 
         if (id.isEmpty()) {
             responseObject.addProperty("msg", "Something went wrong! Please sign in again.");
