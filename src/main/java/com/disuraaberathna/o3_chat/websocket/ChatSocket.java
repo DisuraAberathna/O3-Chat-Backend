@@ -100,8 +100,9 @@ public class ChatSocket {
                     folderName = firstChat.getFrom().getId() + "-" + firstChat.getTo().getId();
                 }
 
-                ChatStatus readedStatus = getChatStatus(session, "Readed");
-                if (readedStatus == null) readedStatus = getChatStatus(session, "Seen");
+                ChatStatus readedStatus = getChatStatus(session, "Seen");
+                if (readedStatus == null) readedStatus = getChatStatus(session, "Readed");
+                if (readedStatus == null) readedStatus = getChatStatus(session, "Read");
 
                 com.google.gson.JsonArray chats = new com.google.gson.JsonArray();
                 SimpleDateFormat timeFormat = new SimpleDateFormat("hh:mm a");
@@ -134,13 +135,19 @@ public class ChatSocket {
                     chatObject.addProperty("id", chat.getId());
                     chatObject.addProperty("fromUser", chat.getFrom().getF_name() + " " + chat.getFrom().getL_name());
                     chatObject.addProperty("toUser", chat.getTo().getF_name() + " " + chat.getTo().getL_name());
+                    chatObject.addProperty("from_id", chat.getFrom().getId());
+                    chatObject.addProperty("to_id", chat.getTo().getId());
 
                     if (chat.getMessage() != null) {
                         chatObject.addProperty("msg", chat.getMessage());
                     }
 
-                    if (chat.getImg() != null && !folderName.isEmpty()) {
-                        chatObject.addProperty("img", "images//chat//" + folderName + "//" + chat.getImg());
+                    if (chat.getImg() != null) {
+                        if (chat.getImg().startsWith("http")) {
+                            chatObject.addProperty("img", chat.getImg());
+                        } else if (!folderName.isEmpty()) {
+                            chatObject.addProperty("img", "images//chat//" + folderName + "//" + chat.getImg());
+                        }
                     }
 
                     chatObject.addProperty("time", timeFormat.format(chat.getDateTime()));
@@ -157,7 +164,11 @@ public class ChatSocket {
                             chatObject.addProperty("replyMsg", chat.getReply().getMessage());
                         }
                         if (chat.getReply().getImg() != null) {
-                            chatObject.addProperty("replyImg", "images//chat//" + folderName + "//" + chat.getReply().getImg());
+                            if (chat.getReply().getImg().startsWith("http")) {
+                                chatObject.addProperty("replyImg", chat.getReply().getImg());
+                            } else {
+                                chatObject.addProperty("replyImg", "images//chat//" + folderName + "//" + chat.getReply().getImg());
+                            }
                         }
                     }
 
@@ -197,14 +208,8 @@ public class ChatSocket {
                 searchResults = session.createQuery(userSearchQuery).getResultList();
             }
 
-            Query<ChatStatus> statusQuery = session.createQuery("FROM ChatStatus WHERE name = :name", ChatStatus.class);
-            statusQuery.setParameter("name", "Delivered");
-            ChatStatus deliveredStatus = statusQuery.uniqueResult();
-
-            if (deliveredStatus == null) {
-                statusQuery.setParameter("name", "Sent");
-                deliveredStatus = statusQuery.uniqueResult();
-            }
+            ChatStatus deliveredStatus = getChatStatus(session, "Delivered");
+            if (deliveredStatus == null) deliveredStatus = getChatStatus(session, "Sent");
 
             jakarta.persistence.criteria.CriteriaQuery<Chat> chatQuery = cb.createQuery(Chat.class);
             jakarta.persistence.criteria.Root<Chat> chatRoot = chatQuery.from(Chat.class);
@@ -272,7 +277,7 @@ public class ChatSocket {
                 }
                 jsonChatItem.addProperty("time", formattedTime);
 
-                if (chat.getMessage() != null) {
+                if (chat.getMessage() != null && !chat.getMessage().trim().isEmpty()) {
                     jsonChatItem.addProperty("msg", chat.getMessage());
                 } else if (chat.getImg() != null) {
                     jsonChatItem.addProperty("msg", "Image");
@@ -314,9 +319,15 @@ public class ChatSocket {
     private void handleSendMessage(JsonObject jsonMessage, String senderId) {
         String toId = jsonMessage.has("to_id") && !jsonMessage.get("to_id").isJsonNull() ? jsonMessage.get("to_id").getAsString() : null;
         String msgContent = jsonMessage.has("message") && !jsonMessage.get("message").isJsonNull() ? jsonMessage.get("message").getAsString() : null;
-        String replyId = jsonMessage.has("reply_id") && !jsonMessage.get("reply_id").isJsonNull() ? jsonMessage.get("reply_id").getAsString() : null;
 
-        if (toId != null && msgContent != null) {
+        if (msgContent != null && msgContent.trim().isEmpty()) {
+            msgContent = null;
+        }
+
+        String replyId = jsonMessage.has("reply_id") && !jsonMessage.get("reply_id").isJsonNull() ? jsonMessage.get("reply_id").getAsString() : null;
+        String img = jsonMessage.has("image") && !jsonMessage.get("image").isJsonNull() ? jsonMessage.get("image").getAsString() : null;
+
+        if (toId != null && (msgContent != null || img != null)) {
             try (Session session = HibernateUtil.getSessionFactory().openSession()) {
                 Transaction tx = session.beginTransaction();
 
@@ -326,11 +337,13 @@ public class ChatSocket {
                 ChatStatus status = getChatStatus(session, "Delivered");
                 if (status == null) status = getChatStatus(session, "Sent");
                 if (status == null) status = getChatStatus(session, "Readed");
+                if (status == null) status = getChatStatus(session, "Read");
 
                 Chat chat = new Chat();
                 chat.setFrom(fromUser);
                 chat.setTo(toUser);
                 chat.setMessage(msgContent);
+                chat.setImg(img);
                 chat.setDateTime(new Date());
                 chat.setChatStatus(status);
 
@@ -354,6 +367,7 @@ public class ChatSocket {
                 payload.addProperty("from_id", fromUser.getId());
                 payload.addProperty("to_id", toUser.getId());
                 payload.addProperty("message", chat.getMessage());
+                if (chat.getImg() != null) payload.addProperty("image", chat.getImg());
                 payload.addProperty("date_time", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(chat.getDateTime()));
                 payload.addProperty("status_id", chat.getChatStatus().getId());
 
@@ -374,6 +388,10 @@ public class ChatSocket {
                     ack.addProperty("type", "ack");
                     ack.addProperty("status", "sent");
                     ack.addProperty("chat_id", chat.getId());
+                    ack.addProperty("status_id", chat.getChatStatus().getId());
+                    if (jsonMessage.has("temp_id") && !jsonMessage.get("temp_id").isJsonNull()) {
+                        ack.addProperty("temp_id", jsonMessage.get("temp_id").getAsString());
+                    }
                     sessions.get(senderId).getAsyncRemote().sendText(gson.toJson(ack));
                 }
 
