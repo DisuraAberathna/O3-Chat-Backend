@@ -24,22 +24,27 @@ import java.util.concurrent.ConcurrentHashMap;
 @ServerEndpoint("/chat/{userId}")
 public class ChatSocket {
 
-    private static final Map<String, jakarta.websocket.Session> sessions = new ConcurrentHashMap<>();
+    private static final Map<String, java.util.Set<jakarta.websocket.Session>> sessions = new ConcurrentHashMap<>();
     private static final Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
     @OnOpen
     public void onOpen(jakarta.websocket.Session session, @PathParam("userId") String userId) {
-        sessions.put(userId, session);
+        sessions.computeIfAbsent(userId, k -> java.util.Collections.newSetFromMap(new ConcurrentHashMap<>())).add(session);
     }
 
     @OnClose
     public void onClose(jakarta.websocket.Session session, @PathParam("userId") String userId) {
-        sessions.remove(userId);
+        java.util.Set<jakarta.websocket.Session> userSessions = sessions.get(userId);
+        if (userSessions != null) {
+            userSessions.remove(session);
+            if (userSessions.isEmpty()) {
+                sessions.remove(userId);
+            }
+        }
     }
 
     @OnError
     public void onError(jakarta.websocket.Session session, Throwable throwable) {
-        throwable.printStackTrace();
     }
 
     @OnMessage
@@ -49,7 +54,7 @@ public class ChatSocket {
             String type = jsonMessage.has("type") ? jsonMessage.get("type").getAsString() : "";
 
             if ("send".equals(type)) {
-                handleSendMessage(jsonMessage, senderId);
+                handleSendMessage(jsonMessage, senderId, session);
             } else if ("seen".equals(type)) {
                 handleSeenMessage(jsonMessage, senderId);
             } else if ("load_chats".equals(type)) {
@@ -126,7 +131,19 @@ public class ChatSocket {
                                 payload.addProperty("type", "seen");
                                 payload.addProperty("chat_id", chat.getId());
                                 payload.addProperty("seen_by", userId);
-                                sessions.get(senderId).getAsyncRemote().sendText(gson.toJson(payload));
+                                for (jakarta.websocket.Session s : sessions.get(senderId)) {
+                                    if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(payload));
+                                }
+                            }
+                            
+                            if (sessions.containsKey(userId)) {
+                                JsonObject payload = new JsonObject();
+                                payload.addProperty("type", "seen");
+                                payload.addProperty("chat_id", chat.getId());
+                                payload.addProperty("seen_by", userId);
+                                for (jakarta.websocket.Session s : sessions.get(userId)) {
+                                    if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(payload));
+                                }
                             }
                         }
                     }
@@ -184,7 +201,9 @@ public class ChatSocket {
                 response.add("chats", chats);
 
                 if (sessions.containsKey(userId)) {
-                    sessions.get(userId).getAsyncRemote().sendText(gson.toJson(response));
+                    for (jakarta.websocket.Session s : sessions.get(userId)) {
+                        if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(response));
+                    }
                 }
             }
         } catch (Exception e) {
@@ -308,7 +327,9 @@ public class ChatSocket {
             response.add("chatList", usersArray);
 
             if (sessions.containsKey(userId)) {
-                sessions.get(userId).getAsyncRemote().sendText(gson.toJson(response));
+                for (jakarta.websocket.Session s : sessions.get(userId)) {
+                    if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(response));
+                }
             }
 
         } catch (Exception e) {
@@ -316,7 +337,7 @@ public class ChatSocket {
         }
     }
 
-    private void handleSendMessage(JsonObject jsonMessage, String senderId) {
+    private void handleSendMessage(JsonObject jsonMessage, String senderId, jakarta.websocket.Session wsSession) {
         String toId = jsonMessage.has("to_id") && !jsonMessage.get("to_id").isJsonNull() ? jsonMessage.get("to_id").getAsString() : null;
         String msgContent = jsonMessage.has("message") && !jsonMessage.get("message").isJsonNull() ? jsonMessage.get("message").getAsString() : null;
 
@@ -380,7 +401,9 @@ public class ChatSocket {
                 }
 
                 if (sessions.containsKey(toId)) {
-                    sessions.get(toId).getAsyncRemote().sendText(gson.toJson(payload));
+                    for (jakarta.websocket.Session s : sessions.get(toId)) {
+                        if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(payload));
+                    }
                 }
 
                 if (sessions.containsKey(senderId)) {
@@ -392,7 +415,16 @@ public class ChatSocket {
                     if (jsonMessage.has("temp_id") && !jsonMessage.get("temp_id").isJsonNull()) {
                         ack.addProperty("temp_id", jsonMessage.get("temp_id").getAsString());
                     }
-                    sessions.get(senderId).getAsyncRemote().sendText(gson.toJson(ack));
+                    for (jakarta.websocket.Session s : sessions.get(senderId)) {
+                        if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(ack));
+                    }
+                    
+                    payload.addProperty("side", "right");
+                    for (jakarta.websocket.Session s : sessions.get(senderId)) {
+                        if (s.isOpen() && !s.getId().equals(wsSession.getId())) {
+                            s.getAsyncRemote().sendText(gson.toJson(payload));
+                        }
+                    }
                 }
 
             } catch (Exception e) {
@@ -425,7 +457,19 @@ public class ChatSocket {
                             payload.addProperty("type", "seen");
                             payload.addProperty("chat_id", chat.getId());
                             payload.addProperty("seen_by", userId);
-                            sessions.get(senderId).getAsyncRemote().sendText(gson.toJson(payload));
+                            for (jakarta.websocket.Session s : sessions.get(senderId)) {
+                                if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(payload));
+                            }
+                        }
+                        
+                        if (sessions.containsKey(userId)) {
+                            JsonObject payload = new JsonObject();
+                            payload.addProperty("type", "seen");
+                            payload.addProperty("chat_id", chat.getId());
+                            payload.addProperty("seen_by", userId);
+                            for (jakarta.websocket.Session s : sessions.get(userId)) {
+                                if (s.isOpen()) s.getAsyncRemote().sendText(gson.toJson(payload));
+                            }
                         }
                     }
                 }
