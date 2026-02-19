@@ -51,7 +51,11 @@ public class LoadUsers extends HttpServlet {
                 predicates.add(cb.notEqual(root.get("id"), Integer.valueOf(id)));
 
                 if (searchText != null && !searchText.isEmpty()) {
-                    predicates.add(cb.like(root.get("f_name"), searchText + "%"));
+                    String searchPattern = "%" + searchText + "%";
+                    predicates.add(cb.or(
+                            cb.like(root.get("f_name"), searchPattern),
+                            cb.like(root.get("l_name"), searchPattern)
+                    ));
                 }
 
                 cq.select(root)
